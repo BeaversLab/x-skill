@@ -1,4 +1,4 @@
-use crate::constants::LOCAL_LOCK_FILENAME;
+use crate::constants::{LOCAL_LOCK_FILENAME, LOCAL_LOCK_VERSION};
 use crate::types::{LocalSkillLockEntry, LocalSkillLockFile};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -88,7 +88,7 @@ pub fn add_skill_to_local_lock(
 
 fn create_empty_local_lock() -> LocalSkillLockFile {
     LocalSkillLockFile {
-        version: 1,
+        version: LOCAL_LOCK_VERSION,
         skills: BTreeMap::new(),
     }
 }

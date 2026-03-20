@@ -66,10 +66,7 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
 
     // Apply skill_filter from @skill syntax
     if let Some(ref filter) = parsed.skill_filter {
-        discovered = discovered
-            .into_iter()
-            .filter(|s| s.name.eq_ignore_ascii_case(filter))
-            .collect();
+        discovered.retain(|s| s.name.eq_ignore_ascii_case(filter));
         if discovered.is_empty() {
             return Err(XSkillError::SkillNotFound(filter.clone()).into());
         }
@@ -188,14 +185,13 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
                 );
             } else {
                 fail_count += 1;
-                let err = result.error.unwrap_or_default();
-                eprintln!(
-                    "  {} {} → {}: {}",
-                    "✗".red(),
-                    skill.name,
-                    agent.display_name,
-                    err.red()
-                );
+                let reason = result.error.unwrap_or_default();
+                let install_err = XSkillError::InstallFailed {
+                    skill: skill.name.clone(),
+                    agent: agent.display_name.to_string(),
+                    reason,
+                };
+                eprintln!("  {} {}", "✗".red(), install_err);
             }
 
             if result.symlink_failed {

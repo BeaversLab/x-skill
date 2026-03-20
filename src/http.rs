@@ -111,6 +111,7 @@ pub async fn fetch_skill_folder_hash(
 }
 
 /// Check if a GitHub repo is private.
+#[allow(dead_code)]
 pub async fn is_repo_private(owner: &str, repo: &str) -> Option<bool> {
     #[derive(Deserialize)]
     struct RepoInfo {

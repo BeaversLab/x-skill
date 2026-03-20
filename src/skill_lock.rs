@@ -1,4 +1,5 @@
 use crate::constants::{GLOBAL_LOCK_VERSION, SKILL_LOCK_FILENAME};
+use crate::error::XSkillError;
 use crate::types::SkillLockFile;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -19,7 +20,17 @@ pub async fn read_skill_lock() -> SkillLockFile {
     match tokio::fs::read_to_string(&path).await {
         Ok(content) => match serde_json::from_str::<SkillLockFile>(&content) {
             Ok(lock) if lock.version >= GLOBAL_LOCK_VERSION => lock,
-            _ => create_empty_lock(),
+            Ok(_) | Err(_) => {
+                if !content.trim().is_empty() {
+                    eprintln!(
+                        "  {}",
+                        XSkillError::LockFileCorrupted {
+                            path: path.clone()
+                        }
+                    );
+                }
+                create_empty_lock()
+            }
         },
         Err(_) => create_empty_lock(),
     }

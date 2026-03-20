@@ -450,6 +450,7 @@ pub fn get_universal_agents(configs: &[AgentConfig]) -> Vec<&AgentConfig> {
         .collect()
 }
 
+#[allow(dead_code)]
 pub fn get_non_universal_agents(configs: &[AgentConfig]) -> Vec<&AgentConfig> {
     configs.iter().filter(|c| !is_universal_agent(c)).collect()
 }

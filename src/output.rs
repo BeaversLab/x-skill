@@ -5,7 +5,7 @@ pub fn show_banner() {
     println!();
     println!("  {}", "The open agent skills ecosystem".dimmed());
     println!();
-    println!("  {} {} {}", "Usage:".bold(), "x-skill", "<command> [options]");
+    println!("  {} x-skill <command> [options]", "Usage:".bold());
     println!();
     println!("  {}  Install skills     x-skill add <source>", "add".green().bold());
     println!(
@@ -36,6 +36,7 @@ pub fn show_logo() {
     println!("{}", logo.dimmed());
 }
 
+#[allow(dead_code)]
 pub fn strip_logo(output: &str) -> String {
     output
         .lines()
@@ -44,6 +45,7 @@ pub fn strip_logo(output: &str) -> String {
         .join("\n")
 }
 
+#[allow(dead_code)]
 pub fn has_logo(output: &str) -> bool {
     output.contains("███████╗██╗  ██╗██╗██╗")
 }

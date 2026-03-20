@@ -74,6 +74,19 @@ pub async fn install_skill_for_agent(
         }
     };
 
+    // Defense-in-depth: verify target doesn't escape expected directory
+    let base_dir = agent_dir.parent().unwrap_or(&agent_dir).to_path_buf();
+    if !is_path_safe(&base_dir, &agent_dir) {
+        return InstallResult {
+            success: false,
+            path: agent_dir,
+            canonical_path: None,
+            mode,
+            symlink_failed: false,
+            error: Some("path traversal detected in install target".into()),
+        };
+    }
+
     let is_universal = agents::is_universal_agent(agent_config);
 
     // Canonical dir is where the single authoritative copy lives
@@ -243,7 +256,7 @@ fn create_symlink(target: &Path, link: &Path) -> io::Result<()> {
     // Remove existing link/dir if present
     if link.exists() || link.is_symlink() {
         // Try to remove, handle ELOOP (circular symlink)
-        if let Err(_) = fs::remove_dir_all(link) {
+        if fs::remove_dir_all(link).is_err() {
             let _ = fs::remove_file(link);
         }
     }

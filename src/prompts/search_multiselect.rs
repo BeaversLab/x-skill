@@ -17,7 +17,6 @@ pub struct MultiSelectOptions<T: Clone> {
     pub locked_values: Vec<T>,
     pub locked_labels: Vec<String>,
     pub max_visible: usize,
-    pub required: bool,
 }
 
 impl<T: Clone> Default for MultiSelectOptions<T> {
@@ -28,7 +27,6 @@ impl<T: Clone> Default for MultiSelectOptions<T> {
             locked_values: Vec::new(),
             locked_labels: Vec::new(),
             max_visible: 15,
-            required: false,
         }
     }
 }
@@ -128,9 +126,7 @@ fn run_interactive<T: Clone + PartialEq>(
                         return Ok(Some(result));
                     }
                     KeyCode::Up => {
-                        if cursor_pos > 0 {
-                            cursor_pos -= 1;
-                        }
+                        cursor_pos = cursor_pos.saturating_sub(1);
                     }
                     KeyCode::Down => {
                         if !filtered_indices.is_empty() && cursor_pos < filtered_indices.len() - 1 {

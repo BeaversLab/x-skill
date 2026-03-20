@@ -1,3 +1,4 @@
+use crate::error::XSkillError;
 use crate::types::{ProviderMatch, RemoteSkill};
 use regex::Regex;
 use serde::Deserialize;
@@ -44,6 +45,7 @@ impl WellKnownProvider {
         })
     }
 
+    #[allow(dead_code)]
     pub fn to_raw_url(&self, url: &str) -> String {
         url.to_string()
     }
@@ -54,6 +56,7 @@ impl WellKnownProvider {
             .unwrap_or_else(|| "wellknown/unknown".into())
     }
 
+    #[allow(dead_code)]
     pub async fn fetch_skill(&self, url: &str) -> anyhow::Result<Option<RemoteSkill>> {
         let skills = self.fetch_all_skills(url).await?;
         Ok(skills.into_iter().next())
@@ -71,7 +74,12 @@ impl WellKnownProvider {
 
         let mut results = Vec::new();
         for entry in &index.skills {
-            if !is_valid_skill_entry(entry) {
+            if let Some(reason) = validate_skill_entry(entry) {
+                eprintln!(
+                    "  skipping invalid entry '{}': {}",
+                    entry.name,
+                    XSkillError::WellKnownValidation { reason }
+                );
                 continue;
             }
             if let Some(skill) = self.fetch_skill_by_entry(base_url, entry, &source_id).await {
@@ -165,27 +173,27 @@ impl WellKnownProvider {
     }
 }
 
-fn is_valid_skill_entry(entry: &WellKnownSkillEntry) -> bool {
+/// Returns `None` if valid, `Some(reason)` if invalid.
+fn validate_skill_entry(entry: &WellKnownSkillEntry) -> Option<String> {
     if entry.name.is_empty() || entry.description.is_empty() || entry.files.is_empty() {
-        return false;
+        return Some("missing required fields".into());
     }
     if !NAME_RE.is_match(&entry.name) {
-        return false;
+        return Some(format!("invalid name '{}'", entry.name));
     }
     let has_skill_md = entry
         .files
         .iter()
         .any(|f| f.eq_ignore_ascii_case("SKILL.md"));
     if !has_skill_md {
-        return false;
+        return Some("no SKILL.md in files list".into());
     }
-    // Path traversal protection
     for file in &entry.files {
         if file.starts_with('/') || file.starts_with('\\') || file.contains("..") {
-            return false;
+            return Some(format!("path traversal in file '{file}'"));
         }
     }
-    true
+    None
 }
 
 async fn try_fetch_index(url: &str) -> Option<WellKnownIndex> {
@@ -245,7 +253,7 @@ mod tests {
             description: "A skill".into(),
             files: vec!["SKILL.md".into()],
         };
-        assert!(is_valid_skill_entry(&entry));
+        assert!(validate_skill_entry(&entry).is_none());
     }
 
     #[test]
@@ -255,7 +263,7 @@ mod tests {
             description: "A skill".into(),
             files: vec!["README.md".into()],
         };
-        assert!(!is_valid_skill_entry(&entry));
+        assert!(validate_skill_entry(&entry).is_some());
     }
 
     #[test]
@@ -265,7 +273,7 @@ mod tests {
             description: "Bad".into(),
             files: vec!["SKILL.md".into(), "../../../etc/passwd".into()],
         };
-        assert!(!is_valid_skill_entry(&entry));
+        assert!(validate_skill_entry(&entry).is_some());
     }
 
     #[test]

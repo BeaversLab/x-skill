@@ -68,6 +68,7 @@ impl DetectStrategy {
 }
 
 /// Static configuration for one agent platform.
+#[allow(dead_code)]
 pub struct AgentConfig {
     pub agent_type: AgentType,
     pub name: &'static str,
@@ -118,6 +119,7 @@ pub struct ParsedSource {
 
 /// A skill fetched from a remote provider.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RemoteSkill {
     pub name: String,
     pub description: String,
@@ -138,6 +140,7 @@ pub enum InstallMode {
 
 /// Result of installing a single skill for one agent.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct InstallResult {
     pub success: bool,
     pub path: PathBuf,
@@ -196,6 +199,7 @@ pub struct LocalSkillLockFile {
 
 /// Provider match result.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProviderMatch {
     pub matches: bool,
     pub source_identifier: Option<String>,

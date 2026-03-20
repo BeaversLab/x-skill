@@ -1,4 +1,5 @@
 use crate::agents::{build_agent_configs, get_agent_config};
+use crate::error::XSkillError;
 use crate::installer::sanitize_name;
 use crate::output;
 use crate::skill_lock;
@@ -28,7 +29,7 @@ pub async fn run(
     let skill_names: Vec<String> = if let Some(name) = skill {
         let sanitized = sanitize_name(name);
         if !lock.skills.contains_key(&sanitized) {
-            anyhow::bail!("skill '{}' not found in lock file", name);
+            return Err(XSkillError::SkillNotFound(name.to_string()).into());
         }
         vec![sanitized]
     } else if yes {
@@ -47,7 +48,7 @@ pub async fn run(
     let target_agents: Vec<_> = if let Some(agent_name) = agent {
         match get_agent_config(&configs, agent_name) {
             Some(cfg) => vec![cfg],
-            None => anyhow::bail!("unknown agent: {}", agent_name),
+            None => return Err(XSkillError::AgentNotFound(agent_name.to_string()).into()),
         }
     } else {
         configs.iter().collect()
@@ -70,7 +71,7 @@ pub async fn run(
     }
 
     // Remove skills
-    let mut _removed = 0;
+    let mut removed = 0;
     for skill_name in &skill_names {
         for agent in &target_agents {
             let skill_dir = if global {
@@ -93,7 +94,7 @@ pub async fn run(
                             e
                         );
                     } else {
-                        _removed += 1;
+                        removed += 1;
                     }
                 }
             }
@@ -118,9 +119,10 @@ pub async fn run(
     let _ = skill_lock::write_skill_lock(&lock).await;
 
     println!(
-        "\n  {} Removed {} skill(s).",
+        "\n  {} Removed {} skill(s) from {} location(s).",
         "✓".green().bold(),
-        skill_names.len()
+        skill_names.len(),
+        removed,
     );
 
     // Telemetry

@@ -17,6 +17,7 @@ struct MarketplaceMetadata {
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
+#[allow(dead_code)]
 enum PluginSource {
     Simple(String),
     Complex { source: String, repo: Option<String> },

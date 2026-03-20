@@ -1,7 +1,5 @@
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub const AGENTS_DIR: &str = ".agents";
-pub const SKILLS_SUBDIR: &str = "skills";
 pub const UNIVERSAL_SKILLS_DIR: &str = ".agents/skills";
 
 pub const SKILL_LOCK_FILENAME: &str = ".skill-lock.json";

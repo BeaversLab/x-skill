@@ -23,6 +23,7 @@ impl Provider {
         }
     }
 
+    #[allow(dead_code)]
     pub fn to_raw_url(&self, url: &str) -> String {
         match self {
             Self::WellKnown(p) => p.to_raw_url(url),
@@ -35,6 +36,7 @@ impl Provider {
         }
     }
 
+    #[allow(dead_code)]
     pub async fn fetch_skill(&self, url: &str) -> anyhow::Result<Option<RemoteSkill>> {
         match self {
             Self::WellKnown(p) => p.fetch_skill(url).await,
