@@ -2,7 +2,9 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 
 fn x_skill() -> Command {
-    Command::cargo_bin("x-skill").unwrap()
+    let mut cmd = Command::cargo_bin("x-skill").unwrap();
+    cmd.env("LANGUAGE", "en");
+    cmd
 }
 
 #[test]

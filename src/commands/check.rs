@@ -1,7 +1,8 @@
 use crate::http;
 use crate::output;
 use crate::skill_lock;
-use colored::Colorize;
+use crate::t;
+use console::style;
 
 pub async fn run() -> anyhow::Result<()> {
     output::show_logo();
@@ -10,20 +11,19 @@ pub async fn run() -> anyhow::Result<()> {
     let lock = skill_lock::read_skill_lock().await;
 
     if lock.skills.is_empty() {
-        println!("  {} No skills installed.", "!".yellow().bold());
+        cliclack::log::warning(t!("no_skills_installed"))?;
         return Ok(());
     }
 
     println!(
-        "  Checking {} skill(s) for updates...\n",
-        lock.skills.len()
+        "  {}\n",
+        t!("checking_updates", "count" => lock.skills.len())
     );
 
     let mut updates_available = 0;
     let mut errors = 0;
 
     for (name, entry) in &lock.skills {
-        // Skip entries without a hash or that are local/git
         if entry.skill_folder_hash.is_empty()
             || entry.source_type == "local"
             || entry.source_type == "git"
@@ -36,48 +36,36 @@ pub async fn run() -> anyhow::Result<()> {
             Ok(Some(latest_hash)) => {
                 if latest_hash != entry.skill_folder_hash {
                     updates_available += 1;
-                    println!(
-                        "  {} {} has updates available",
-                        "↑".cyan().bold(),
-                        name.bold()
-                    );
+                    cliclack::log::info(
+                        t!("has_updates", "name" => style(name).bold()),
+                    )?;
                 } else {
-                    println!(
-                        "  {} {} is up to date",
-                        "✓".green(),
-                        name.dimmed()
-                    );
+                    cliclack::log::success(
+                        t!("up_to_date", "name" => style(name).dim()),
+                    )?;
                 }
             }
             Ok(None) => {
-                println!(
-                    "  {} {} could not determine version",
-                    "?".yellow(),
-                    name.dimmed()
-                );
+                cliclack::log::warning(
+                    t!("cannot_determine_version", "name" => style(name).dim()),
+                )?;
             }
             Err(e) => {
                 errors += 1;
-                eprintln!(
-                    "  {} {} error: {}",
-                    "✗".red(),
-                    name,
-                    e.to_string().red()
-                );
+                cliclack::log::error(t!("check_error", "name" => name, "error" => e))?;
             }
         }
     }
 
     println!();
     if updates_available > 0 {
-        println!(
-            "  {} {} update(s) available. Run {} to update.",
-            "↑".cyan().bold(),
-            updates_available,
-            "x-skill update".bold()
-        );
+        cliclack::log::info(t!(
+            "updates_available",
+            "count" => updates_available,
+            "cmd" => style("x-skill update").bold()
+        ))?;
     } else if errors == 0 {
-        println!("  {} All skills are up to date.", "✓".green().bold());
+        cliclack::log::success(t!("all_up_to_date"))?;
     }
 
     // Telemetry

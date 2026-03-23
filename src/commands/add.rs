@@ -9,13 +9,14 @@ use crate::providers::registry;
 use crate::skill_lock;
 use crate::skills::{self, filter_skills};
 use crate::source_parser::{self, get_owner_repo};
+use crate::t;
 use crate::telemetry;
 use crate::types::{
     AddOptions, AgentConfig, DiscoverOptions, InstallMode, Skill, SkillLockEntry, SourceType,
 };
-use colored::Colorize;
+use console::style;
 use std::collections::{HashMap, HashSet};
-use std::io::Write;
+use std::io::IsTerminal;
 
 pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
     output::show_logo();
@@ -44,8 +45,10 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
             (local_path.clone(), None)
         }
         _ => {
-            println!("  {} {}", "Cloning".dimmed(), parsed.url.dimmed());
+            let spinner = cliclack::spinner();
+            spinner.start(t!("clone_start", "url" => &parsed.url));
             let temp = git::clone_repo(&parsed.url, parsed.ref_branch.as_deref()).await?;
+            spinner.stop(t!("clone_complete"));
             let dir = temp.clone();
             (dir, Some(temp))
         }
@@ -60,7 +63,7 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
         skills::discover_skills(&skills_dir, parsed.subpath.as_deref(), &discover_opts)?;
 
     if discovered.is_empty() {
-        println!("  {} No skills found in source.", "!".yellow().bold());
+        cliclack::log::warning(t!("no_skills_found"))?;
         return Ok(());
     }
 
@@ -74,11 +77,14 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
 
     // List-only mode
     if opts.list_only {
-        println!("  {} skills found:\n", discovered.len());
+        println!(
+            "  {}\n",
+            t!("skills_found_count", "count" => discovered.len())
+        );
         for s in &discovered {
-            println!("  {} {}", "•".dimmed(), s.name.bold());
+            println!("  {} {}", style("•").dim(), style(&s.name).bold());
             if !s.description.is_empty() {
-                println!("    {}", s.description.dimmed());
+                println!("    {}", style(&s.description).dim());
             }
         }
         return Ok(());
@@ -87,7 +93,7 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
     // Skill selection
     let selected_skills = select_skills(&discovered, opts)?;
     if selected_skills.is_empty() {
-        println!("  No skills selected.");
+        cliclack::log::info(t!("no_skills_selected"))?;
         return Ok(());
     }
 
@@ -108,16 +114,42 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
     let all_configs = build_agent_configs();
     let selected_agents = select_agents(&all_configs, opts)?;
     if selected_agents.is_empty() {
-        println!("  No agents selected.");
+        cliclack::log::info(t!("no_agents_selected"))?;
         return Ok(());
     }
 
-    // Determine install mode
+    // Scope selection: Project vs Global
+    let is_interactive = !opts.yes && std::io::stdin().is_terminal();
+    let global = if opts.global {
+        true
+    } else if is_interactive
+        && selected_agents
+            .iter()
+            .any(|a| a.global_skills_dir.is_some())
+    {
+        let scope: bool = cliclack::select(t!("scope_prompt"))
+            .item(false, t!("scope_project"), t!("scope_project_hint"))
+            .item(true, t!("scope_global"), t!("scope_global_hint"))
+            .interact()?;
+        scope
+    } else {
+        false
+    };
+
+    // Method selection: Symlink vs Copy
     let unique_dirs: HashSet<_> = selected_agents.iter().map(|a| a.skills_dir).collect();
     let mode = if opts.copy {
         InstallMode::Copy
-    } else if unique_dirs.len() > 1 && !opts.yes {
-        InstallMode::Symlink
+    } else if is_interactive && unique_dirs.len() > 1 {
+        let method: &str = cliclack::select(t!("method_prompt"))
+            .item("symlink", t!("method_symlink"), t!("method_symlink_hint"))
+            .item("copy", t!("method_copy"), t!("method_copy_hint"))
+            .interact()?;
+        if method == "symlink" {
+            InstallMode::Symlink
+        } else {
+            InstallMode::Copy
+        }
     } else {
         InstallMode::Copy
     };
@@ -129,27 +161,28 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
 
     // Summary
     println!(
-        "\n  Installing {} skill(s) for {} agent(s):\n",
-        selected_skills.len().to_string().bold(),
-        selected_agents.len().to_string().bold(),
+        "\n  {}\n",
+        t!("installing_summary",
+            "skills" => style(selected_skills.len()).bold(),
+            "agents" => style(selected_agents.len()).bold()
+        )
     );
     for s in &selected_skills {
-        println!("  {} {}", "•".green(), s.name);
+        println!("  {} {}", style("•").green(), s.name);
     }
     println!();
     for a in &selected_agents {
-        println!("  {} {}", "→".dimmed(), a.display_name);
+        println!("  {} {}", style("→").dim(), a.display_name);
     }
     println!();
 
     // Confirmation
-    if !opts.yes && atty::is(atty::Stream::Stdin) {
-        print!("  Continue? [Y/n] ");
-        std::io::stdout().flush().ok();
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        if input.trim().eq_ignore_ascii_case("n") {
-            println!("  Cancelled.");
+    if !opts.yes && std::io::stdin().is_terminal() {
+        let should_continue = cliclack::confirm(t!("confirm_continue"))
+            .initial_value(true)
+            .interact()?;
+        if !should_continue {
+            cliclack::outro_cancel(t!("cancelled"))?;
             return Ok(());
         }
     }
@@ -164,7 +197,7 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
                 &skill.path,
                 &skill.name,
                 agent,
-                opts.global,
+                global,
                 mode,
             )
             .await;
@@ -172,17 +205,16 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
             if result.success {
                 success_count += 1;
                 let mode_label = match result.mode {
-                    InstallMode::Symlink => " (symlink)",
-                    InstallMode::Copy => "",
+                    InstallMode::Symlink => t!("mode_symlink"),
+                    InstallMode::Copy => String::new(),
                 };
-                println!(
-                    "  {} {} → {} [{}{}]",
-                    "✓".green(),
+                cliclack::log::success(format!(
+                    "{} → {} [{}{}]",
                     skill.name,
-                    agent.display_name.dimmed(),
+                    style(agent.display_name).dim(),
                     result.path.display(),
                     mode_label,
-                );
+                ))?;
             } else {
                 fail_count += 1;
                 let reason = result.error.unwrap_or_default();
@@ -191,33 +223,24 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
                     agent: agent.display_name.to_string(),
                     reason,
                 };
-                eprintln!("  {} {}", "✗".red(), install_err);
+                cliclack::log::error(format!("{install_err}"))?;
             }
 
             if result.symlink_failed {
-                eprintln!(
-                    "  {} symlink failed, fell back to copy for {}",
-                    "⚠".yellow(),
-                    agent.display_name
-                );
+                cliclack::log::warning(
+                    t!("symlink_fallback", "agent" => agent.display_name),
+                )?;
             }
         }
     }
 
     println!();
     if fail_count == 0 {
-        println!(
-            "  {} Installed {} skill(s) successfully.",
-            "✓".green().bold(),
-            success_count
-        );
+        cliclack::log::success(t!("install_success", "count" => success_count))?;
     } else {
-        println!(
-            "  {} {} succeeded, {} failed.",
-            "!".yellow().bold(),
-            success_count,
-            fail_count
-        );
+        cliclack::log::warning(
+            t!("install_partial", "success" => success_count, "fail" => fail_count),
+        )?;
     }
 
     // Update global lock
@@ -244,7 +267,7 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
     }
 
     // Update project lock
-    if !opts.global {
+    if !global {
         let cwd = std::env::current_dir().unwrap_or_default();
         let mut local_lock = local_lock::read_local_lock(&cwd).await;
         let source_type_str = format!("{:?}", parsed.source_type).to_lowercase();
@@ -265,6 +288,10 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
     if parsed.source_type != SourceType::Local {
         let mut params = HashMap::new();
         params.insert("source".into(), source.to_string());
+        params.insert(
+            "sourceType".into(),
+            parsed.source_type.telemetry_source_type().to_string(),
+        );
         params.insert("skills".into(), skill_slugs.join(","));
         params.insert(
             "agents".into(),
@@ -274,7 +301,7 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
                 .collect::<Vec<_>>()
                 .join(","),
         );
-        if opts.global {
+        if global {
             params.insert("global".into(), "1".into());
         }
         telemetry::track("install", params);
@@ -294,31 +321,22 @@ async fn handle_provider_skills(
     source: &str,
     opts: &AddOptions,
 ) -> anyhow::Result<()> {
-    println!(
-        "  {} {} (provider: {})",
-        "Fetching skills from".dimmed(),
-        url.dimmed(),
-        provider.id().cyan()
-    );
+    let spinner = cliclack::spinner();
+    spinner.start(t!("provider_fetching", "url" => url, "provider" => provider.id()));
 
     let remote_skills = provider.fetch_all_skills(url).await?;
 
     if remote_skills.is_empty() {
-        println!(
-            "  {} No skills found at {} endpoint.",
-            "!".yellow().bold(),
-            provider.display_name()
-        );
+        spinner.stop(t!("done"));
+        cliclack::log::warning(
+            t!("provider_no_skills", "name" => provider.display_name()),
+        )?;
         return Ok(());
     }
 
     let source_id = provider.source_identifier(url);
 
-    println!(
-        "  {} {} skill(s) found",
-        "✓".green(),
-        remote_skills.len()
-    );
+    spinner.stop(t!("provider_skills_found", "count" => remote_skills.len()));
 
     let all_configs = build_agent_configs();
     let selected_agents = select_agents(&all_configs, opts)?;
@@ -341,28 +359,30 @@ async fn handle_provider_skills(
             .await;
             if result.success {
                 success_count += 1;
-                println!(
-                    "  {} {} → {} [{}]",
-                    "✓".green(),
+                cliclack::log::success(format!(
+                    "{} → {} [{}]",
                     rs.name,
-                    agent.display_name.dimmed(),
+                    style(agent.display_name).dim(),
                     result.path.display(),
-                );
+                ))?;
             }
         }
     }
 
-    println!(
-        "\n  {} Installed {} item(s) from {} ({})",
-        "✓".green().bold(),
-        success_count,
-        provider.display_name(),
-        source_id
-    );
+    cliclack::log::success(t!(
+        "provider_install_success",
+        "count" => success_count,
+        "name" => provider.display_name(),
+        "id" => source_id
+    ))?;
 
     // Telemetry
     let mut params = HashMap::new();
     params.insert("source".into(), source.to_string());
+    params.insert(
+        "sourceType".into(),
+        SourceType::WellKnown.telemetry_source_type().to_string(),
+    );
     params.insert("provider".into(), provider.id().to_string());
     params.insert(
         "skills".into(),
@@ -399,7 +419,7 @@ fn select_skills(discovered: &[Skill], opts: &AddOptions) -> anyhow::Result<Vec<
         .collect();
 
     let multi_opts = MultiSelectOptions {
-        prompt: "Select skills to install".into(),
+        prompt: t!("select_skills"),
         items,
         locked_values: Vec::new(),
         locked_labels: Vec::new(),
@@ -473,7 +493,7 @@ fn select_agents<'a>(
         universal.iter().map(|c| c.display_name.to_string()).collect();
 
     let multi_opts = MultiSelectOptions {
-        prompt: "Select agents to install for".into(),
+        prompt: t!("select_agents"),
         items,
         locked_values: locked_values.clone(),
         locked_labels,

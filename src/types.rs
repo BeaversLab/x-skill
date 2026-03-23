@@ -106,6 +106,19 @@ pub enum SourceType {
     WellKnown,
 }
 
+impl SourceType {
+    /// Lowercase label for telemetry / API (`sourceType` query param), aligned with lock `source_type`.
+    pub fn telemetry_source_type(self) -> &'static str {
+        match self {
+            SourceType::Github => "github",
+            SourceType::Gitlab => "gitlab",
+            SourceType::Git => "git",
+            SourceType::Local => "local",
+            SourceType::WellKnown => "wellknown",
+        }
+    }
+}
+
 /// Result of parsing a user-supplied source string.
 #[derive(Debug, Clone, Default)]
 pub struct ParsedSource {

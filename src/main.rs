@@ -1,7 +1,9 @@
 mod agents;
 mod cli;
 mod commands;
+mod config;
 mod constants;
+mod i18n;
 mod error;
 mod frontmatter;
 mod git;
@@ -23,6 +25,8 @@ use cli::{Cli, Commands};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    config::load_dotenv();
+    config::ensure_language();
     let cli = Cli::parse();
 
     match cli.command {
@@ -68,6 +72,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(Commands::Update) => {
             commands::update::run().await?;
+        }
+        Some(Commands::Config) => {
+            commands::config::run()?;
         }
         Some(Commands::Init { name }) => {
             commands::init::run(name.as_deref())?;

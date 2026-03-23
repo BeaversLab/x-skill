@@ -2,24 +2,23 @@ use crate::agents::build_agent_configs;
 use crate::constants::SKILL_MD;
 use crate::output;
 use crate::skills;
+use crate::t;
 use crate::types::DiscoverOptions;
-use colored::Colorize;
 use std::fs;
 use std::path::Path;
 
 pub async fn run() -> anyhow::Result<()> {
     output::show_logo();
     println!();
-    println!("  {} Scanning node_modules for skills...", "→".dimmed());
+
+    let spinner = cliclack::spinner();
+    spinner.start(t!("scanning_node_modules"));
 
     let cwd = std::env::current_dir()?;
     let node_modules = cwd.join("node_modules");
 
     if !node_modules.exists() {
-        println!(
-            "  {} No node_modules directory found.",
-            "!".yellow().bold()
-        );
+        spinner.error(t!("no_node_modules"));
         return Ok(());
     }
 
@@ -27,18 +26,11 @@ pub async fn run() -> anyhow::Result<()> {
     scan_for_skills(&node_modules, &mut skill_sources, 0)?;
 
     if skill_sources.is_empty() {
-        println!(
-            "  {} No skills found in node_modules.",
-            "!".yellow().bold()
-        );
+        spinner.stop(t!("no_skills_in_node_modules"));
         return Ok(());
     }
 
-    println!(
-        "  {} Found {} package(s) with skills",
-        "✓".green(),
-        skill_sources.len()
-    );
+    spinner.stop(t!("found_packages", "count" => skill_sources.len()));
 
     let configs = build_agent_configs();
     let mut total_installed = 0;
@@ -64,11 +56,7 @@ pub async fn run() -> anyhow::Result<()> {
         }
     }
 
-    println!(
-        "\n  {} Synced {} skill(s) from node_modules.",
-        "✓".green().bold(),
-        total_installed
-    );
+    cliclack::log::success(t!("synced", "count" => total_installed))?;
 
     Ok(())
 }
@@ -89,13 +77,11 @@ fn scan_for_skills(dir: &Path, results: &mut Vec<std::path::PathBuf>, depth: usi
         let name = entry.file_name();
         let name_str = name.to_string_lossy();
 
-        // Check for scoped packages (@scope/package)
         if name_str.starts_with('@') {
             scan_for_skills(&path, results, depth + 1)?;
             continue;
         }
 
-        // Check if this package has skills
         if path.join(SKILL_MD).exists() || path.join("skills").exists() {
             results.push(path);
         }

@@ -33,7 +33,13 @@ pub fn sanitize_name(name: &str) -> String {
 
 pub fn is_path_safe(base: &Path, target: &Path) -> bool {
     let norm_base = normalize(base);
-    let norm_target = normalize(target);
+    // Don't follow symlinks on the target itself — it may be an existing
+    // symlink from a previous install (e.g. pointing to .agents/skills/).
+    // Resolve only the parent directory and re-append the filename.
+    let norm_target = match (target.parent(), target.file_name()) {
+        (Some(parent), Some(name)) => normalize(parent).join(name),
+        _ => normalize(target),
+    };
     norm_target.starts_with(&norm_base)
 }
 

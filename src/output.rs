@@ -1,31 +1,41 @@
-use colored::Colorize;
+use crate::t;
+use console::style;
 
 pub fn show_banner() {
     show_logo();
     println!();
-    println!("  {}", "The open agent skills ecosystem".dimmed());
+    println!("  {}", style(t!("banner_tagline")).dim());
     println!();
-    println!("  {} x-skill <command> [options]", "Usage:".bold());
+    println!("  {} x-skill <command> [options]", style(t!("banner_usage")).bold());
     println!();
-    println!("  {}  Install skills     x-skill add <source>", "add".green().bold());
     println!(
-        "  {}  Search for skills  x-skill find [query]",
-        "find".green().bold()
+        "  {}  {}  x-skill add <source>",
+        style("add").green().bold(),
+        t!("banner_add")
     );
     println!(
-        "  {}  List installed     x-skill list",
-        "list".green().bold()
+        "  {}  {}  x-skill find [query]",
+        style("find").green().bold(),
+        t!("banner_find")
     );
     println!(
-        "  {}  Check updates      x-skill check",
-        "check".green().bold()
+        "  {}  {}  x-skill list",
+        style("list").green().bold(),
+        t!("banner_list")
+    );
+    println!(
+        "  {}  {}  x-skill check",
+        style("check").green().bold(),
+        t!("banner_check")
     );
     println!();
-    println!("  Run {} for more info", "x-skill --help".bold());
+    println!(
+        "  {}",
+        t!("banner_more_info", "cmd" => style("x-skill --help").bold())
+    );
 }
 
 pub fn show_logo() {
-    // Simplified ASCII logo; the full 256-color version is added in Phase 12
     let logo = r#"
   ██╗  ██╗      ███████╗██╗  ██╗██╗██╗     ██╗
   ╚██╗██╔╝      ██╔════╝██║ ██╔╝██║██║     ██║
@@ -33,7 +43,7 @@ pub fn show_logo() {
    ██╔██╗ ╚════╝╚════██║██╔═██╗ ██║██║     ██║
   ██╔╝ ██╗      ███████║██║  ██╗██║███████╗███████╗
   ╚═╝  ╚═╝      ╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝"#;
-    println!("{}", logo.dimmed());
+    println!("{}", style(logo).dim());
 }
 
 #[allow(dead_code)]

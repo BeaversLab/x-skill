@@ -98,6 +98,9 @@ pub enum Commands {
     #[command(visible_alias = "upgrade")]
     Update,
 
+    /// Configure x-skill settings (language, etc.)
+    Config,
+
     /// Create a new SKILL.md template
     Init {
         /// Skill name (defaults to current directory name)

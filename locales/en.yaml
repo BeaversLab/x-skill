@@ -1,0 +1,106 @@
+# English translations for x-skill CLI
+
+# --- Banner (output.rs) ---
+banner_tagline: "The open agent skills ecosystem"
+banner_usage: "Usage:"
+banner_add: "Install skills"
+banner_find: "Search for skills"
+banner_list: "List installed"
+banner_check: "Check updates"
+banner_more_info: "Run {cmd} for more info"
+
+# --- Common ---
+confirm_continue: "Continue?"
+cancelled: "Cancelled."
+done: "Done"
+no_skills_installed: "No skills installed."
+globally: " globally"
+
+# --- Add (add.rs) ---
+clone_start: "Cloning {url}"
+clone_complete: "Clone complete"
+no_skills_found: "No skills found in source."
+skills_found_count: "{count} skills found:"
+no_skills_selected: "No skills selected."
+no_agents_selected: "No agents selected."
+scope_prompt: "Installation scope"
+scope_project: "Project"
+scope_project_hint: "Install in current directory (committed with your project)"
+scope_global: "Global"
+scope_global_hint: "Install in home directory (available across all projects)"
+method_prompt: "Installation method"
+method_symlink: "Symlink (Recommended)"
+method_symlink_hint: "Single source of truth, easy updates"
+method_copy: "Copy to all agents"
+method_copy_hint: "Independent copies for each agent"
+installing_summary: "Installing {skills} skill(s) for {agents} agent(s):"
+mode_symlink: " (symlink)"
+symlink_fallback: "symlink failed, fell back to copy for {agent}"
+install_success: "Installed {count} skill(s) successfully."
+install_partial: "{success} succeeded, {fail} failed."
+select_skills: "Select skills to install"
+select_agents: "Select agents to install for"
+always_included: "Always included: {list}"
+
+# --- Add: Provider ---
+provider_fetching: "Fetching skills from {url} (provider: {provider})"
+provider_no_skills: "No skills found at {name} endpoint."
+provider_skills_found: "{count} skill(s) found"
+provider_install_success: "Installed {count} item(s) from {name} ({id})"
+
+# --- Remove (remove.rs) ---
+installed_skills: "Installed skills"
+remove_specify_name: "Specify skill name with: x-skill remove <name>"
+will_remove: "Will remove {count} skill(s):"
+remove_failed: "Failed to remove {skill} for {agent}: {error}"
+removed_success: "Removed {skills} skill(s) from {locations} location(s)."
+
+# --- List (list.rs) ---
+list_no_skills: "No skills installed. Run {cmd} to install skills."
+list_no_skills_global: "No skills installed globally. Run {cmd} to install skills."
+list_count: "{count} skill(s) installed:"
+list_count_global: "{count} skill(s) installed globally:"
+
+# --- Check (check.rs) ---
+checking_updates: "Checking {count} skill(s) for updates..."
+has_updates: "{name} has updates available"
+up_to_date: "{name} is up to date"
+cannot_determine_version: "{name} could not determine version"
+check_error: "{name} error: {error}"
+updates_available: "{count} update(s) available. Run {cmd} to update."
+all_up_to_date: "All skills are up to date."
+
+# --- Find (find.rs) ---
+searching: "Searching skills.sh..."
+search_unreachable: "Could not reach skills.sh"
+no_results: "No skills found."
+results_found: "{count} skill(s) found"
+
+# --- Update (update.rs) ---
+skills_to_update: "{count} skill(s) to update"
+updating: "Updating {name}..."
+updated: "{name} updated"
+update_failed: "{name} failed: {error}"
+update_summary: "{success} updated, {fail} failed."
+
+# --- Config (config.rs) ---
+language_set: "Language set to: {lang}"
+
+# --- Init (init.rs) ---
+already_exists: "SKILL.md already exists at {path}"
+created: "Created {path}"
+
+# --- Sync (sync.rs) ---
+scanning_node_modules: "Scanning node_modules for skills..."
+no_node_modules: "No node_modules directory found."
+no_skills_in_node_modules: "No skills found in node_modules."
+found_packages: "Found {count} package(s) with skills"
+synced: "Synced {count} skill(s) from node_modules."
+
+# --- Install (install.rs) ---
+no_lock_file: "No skills in project lock file. Run {cmd} first to create a lock file."
+installing_from_lock: "Installing {count} skill(s) from lock file..."
+skill_installing: "Installing {name}..."
+skill_installed: "{name} installed"
+skill_install_failed: "{name} failed: {error}"
+installed_from_lock: "Installed {count} skill(s) from lock file."

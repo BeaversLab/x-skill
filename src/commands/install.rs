@@ -1,7 +1,8 @@
 use crate::local_lock;
 use crate::output;
+use crate::t;
 use crate::types::AddOptions;
-use colored::Colorize;
+use console::style;
 
 pub async fn run() -> anyhow::Result<()> {
     output::show_logo();
@@ -11,28 +12,24 @@ pub async fn run() -> anyhow::Result<()> {
     let lock = local_lock::read_local_lock(&cwd).await;
 
     if lock.skills.is_empty() {
-        println!(
-            "  {} No skills in project lock file.",
-            "!".yellow().bold()
-        );
-        println!(
-            "  Run {} first to create a lock file.",
-            "x-skill add <source>".bold()
-        );
+        cliclack::log::warning(
+            t!("no_lock_file", "cmd" => style("x-skill add <source>").bold()),
+        )?;
         return Ok(());
     }
 
     println!(
-        "  {} Installing {} skill(s) from lock file...\n",
-        "→".dimmed(),
-        lock.skills.len()
+        "  {} {}\n",
+        style("→").dim(),
+        t!("installing_from_lock", "count" => lock.skills.len())
     );
 
     let mut success_count = 0;
     let mut fail_count = 0;
 
     for (name, entry) in &lock.skills {
-        println!("  {} Installing {}...", "→".dimmed(), name.bold());
+        let spinner = cliclack::spinner();
+        spinner.start(t!("skill_installing", "name" => style(name).bold()));
 
         let opts = AddOptions {
             yes: true,
@@ -42,28 +39,22 @@ pub async fn run() -> anyhow::Result<()> {
         match crate::commands::add::run(&entry.source, &opts).await {
             Ok(_) => {
                 success_count += 1;
+                spinner.stop(t!("skill_installed", "name" => name));
             }
             Err(e) => {
                 fail_count += 1;
-                eprintln!("  {} {} failed: {}", "✗".red(), name, e);
+                spinner.error(t!("skill_install_failed", "name" => name, "error" => e));
             }
         }
     }
 
     println!();
     if fail_count == 0 {
-        println!(
-            "  {} Installed {} skill(s) from lock file.",
-            "✓".green().bold(),
-            success_count
-        );
+        cliclack::log::success(t!("installed_from_lock", "count" => success_count))?;
     } else {
-        println!(
-            "  {} {} succeeded, {} failed.",
-            "!".yellow().bold(),
-            success_count,
-            fail_count
-        );
+        cliclack::log::warning(
+            t!("install_partial", "success" => success_count, "fail" => fail_count),
+        )?;
     }
 
     Ok(())

@@ -1,0 +1,106 @@
+# 中文翻译 - x-skill CLI
+
+# --- 横幅 (output.rs) ---
+banner_tagline: "开放的智能体技能生态系统"
+banner_usage: "用法："
+banner_add: "安装技能"
+banner_find: "搜索技能"
+banner_list: "列出已安装"
+banner_check: "检查更新"
+banner_more_info: "运行 {cmd} 获取更多信息"
+
+# --- 通用 ---
+confirm_continue: "继续？"
+cancelled: "已取消。"
+done: "完成"
+no_skills_installed: "未安装任何技能。"
+globally: "（全局）"
+
+# --- 添加 (add.rs) ---
+clone_start: "正在克隆 {url}"
+clone_complete: "克隆完成"
+no_skills_found: "源中未找到任何技能。"
+skills_found_count: "找到 {count} 个技能："
+no_skills_selected: "未选择任何技能。"
+no_agents_selected: "未选择任何智能体。"
+scope_prompt: "安装范围"
+scope_project: "项目"
+scope_project_hint: "安装到当前目录（随项目提交）"
+scope_global: "全局"
+scope_global_hint: "安装到主目录（所有项目通用）"
+method_prompt: "安装方式"
+method_symlink: "符号链接（推荐）"
+method_symlink_hint: "单一来源，易于更新"
+method_copy: "复制到所有智能体"
+method_copy_hint: "每个智能体独立副本"
+installing_summary: "正在为 {agents} 个智能体安装 {skills} 个技能："
+mode_symlink: " (符号链接)"
+symlink_fallback: "{agent} 的符号链接失败，已回退为复制"
+install_success: "成功安装了 {count} 个技能。"
+install_partial: "{success} 个成功，{fail} 个失败。"
+select_skills: "选择要安装的技能"
+select_agents: "选择要安装的智能体"
+always_included: "始终包含：{list}"
+
+# --- 添加：提供者 ---
+provider_fetching: "正在从 {url} 获取技能（提供者：{provider}）"
+provider_no_skills: "在 {name} 端点未找到技能。"
+provider_skills_found: "找到 {count} 个技能"
+provider_install_success: "从 {name} ({id}) 安装了 {count} 个项目"
+
+# --- 移除 (remove.rs) ---
+installed_skills: "已安装的技能"
+remove_specify_name: "请指定技能名称：x-skill remove <名称>"
+will_remove: "将移除 {count} 个技能："
+remove_failed: "移除 {agent} 的 {skill} 失败：{error}"
+removed_success: "从 {locations} 个位置移除了 {skills} 个技能。"
+
+# --- 列表 (list.rs) ---
+list_no_skills: "未安装任何技能。运行 {cmd} 安装技能。"
+list_no_skills_global: "未安装任何技能（全局）。运行 {cmd} 安装技能。"
+list_count: "已安装 {count} 个技能："
+list_count_global: "已安装 {count} 个技能（全局）："
+
+# --- 检查 (check.rs) ---
+checking_updates: "正在检查 {count} 个技能的更新..."
+has_updates: "{name} 有可用更新"
+up_to_date: "{name} 已是最新"
+cannot_determine_version: "{name} 无法确定版本"
+check_error: "{name} 错误：{error}"
+updates_available: "{count} 个更新可用。运行 {cmd} 进行更新。"
+all_up_to_date: "所有技能均为最新。"
+
+# --- 搜索 (find.rs) ---
+searching: "正在搜索 skills.sh..."
+search_unreachable: "无法连接 skills.sh"
+no_results: "未找到技能。"
+results_found: "找到 {count} 个技能"
+
+# --- 更新 (update.rs) ---
+skills_to_update: "{count} 个技能需要更新"
+updating: "正在更新 {name}..."
+updated: "{name} 已更新"
+update_failed: "{name} 失败：{error}"
+update_summary: "{success} 个已更新，{fail} 个失败。"
+
+# --- 配置 (config.rs) ---
+language_set: "语言已设置为：{lang}"
+
+# --- 初始化 (init.rs) ---
+already_exists: "SKILL.md 已存在于 {path}"
+created: "已创建 {path}"
+
+# --- 同步 (sync.rs) ---
+scanning_node_modules: "正在扫描 node_modules 中的技能..."
+no_node_modules: "未找到 node_modules 目录。"
+no_skills_in_node_modules: "node_modules 中未找到技能。"
+found_packages: "找到 {count} 个包含技能的包"
+synced: "从 node_modules 同步了 {count} 个技能。"
+
+# --- 安装 (install.rs) ---
+no_lock_file: "项目锁文件中没有技能。请先运行 {cmd} 创建锁文件。"
+installing_from_lock: "正在从锁文件安装 {count} 个技能..."
+skill_installing: "正在安装 {name}..."
+skill_installed: "{name} 已安装"
+skill_install_failed: "{name} 失败：{error}"
+installed_from_lock: "从锁文件安装了 {count} 个技能。"

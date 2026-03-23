@@ -1,3 +1,4 @@
+use crate::t;
 use std::fs;
 
 pub fn run(name: Option<&str>) -> anyhow::Result<()> {
@@ -16,7 +17,7 @@ pub fn run(name: Option<&str>) -> anyhow::Result<()> {
 
     let skill_file = skill_dir.join(crate::constants::SKILL_MD);
     if skill_file.exists() {
-        anyhow::bail!("SKILL.md already exists at {}", skill_file.display());
+        anyhow::bail!("{}", t!("already_exists", "path" => skill_file.display()));
     }
 
     if name.is_some() {
@@ -46,6 +47,6 @@ Describe when this skill should be used.
     );
 
     fs::write(&skill_file, content)?;
-    println!("Created {}", skill_file.display());
+    println!("{}", t!("created", "path" => skill_file.display()));
     Ok(())
 }

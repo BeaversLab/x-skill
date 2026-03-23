@@ -3,8 +3,10 @@ use crate::error::XSkillError;
 use crate::installer::sanitize_name;
 use crate::output;
 use crate::skill_lock;
-use colored::Colorize;
+use crate::t;
+use console::style;
 use std::fs;
+use std::io::IsTerminal;
 
 pub async fn run(
     skill: Option<&str>,
@@ -21,7 +23,7 @@ pub async fn run(
     let mut lock = skill_lock::read_skill_lock().await;
 
     if lock.skills.is_empty() {
-        println!("  {} No skills installed.", "!".yellow().bold());
+        cliclack::log::warning(t!("no_skills_installed"))?;
         return Ok(());
     }
 
@@ -36,11 +38,11 @@ pub async fn run(
         lock.skills.keys().cloned().collect()
     } else {
         // Interactive: list skills for selection
-        println!("  Installed skills:");
+        println!("  {}:", t!("installed_skills"));
         for (i, name) in lock.skills.keys().enumerate() {
-            println!("  {} {}", format!("{}.", i + 1).dimmed(), name);
+            println!("  {} {}", style(format!("{}.", i + 1)).dim(), name);
         }
-        println!("\n  Specify skill name with: x-skill remove <name>");
+        println!("\n  {}", t!("remove_specify_name"));
         return Ok(());
     };
 
@@ -55,17 +57,20 @@ pub async fn run(
     };
 
     // Confirmation
-    if !yes && atty::is(atty::Stream::Stdin) {
-        println!("\n  Will remove {} skill(s):", skill_names.len());
+    if !yes && std::io::stdin().is_terminal() {
+        println!(
+            "\n  {}",
+            t!("will_remove", "count" => skill_names.len())
+        );
         for name in &skill_names {
-            println!("  {} {}", "•".red(), name);
+            println!("  {} {}", style("•").red(), name);
         }
-        print!("\n  Continue? [y/N] ");
-        std::io::Write::flush(&mut std::io::stdout()).ok();
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        if !input.trim().eq_ignore_ascii_case("y") {
-            println!("  Cancelled.");
+        println!();
+        let should_continue = cliclack::confirm(t!("confirm_continue"))
+            .initial_value(false)
+            .interact()?;
+        if !should_continue {
+            cliclack::outro_cancel(t!("cancelled"))?;
             return Ok(());
         }
     }
@@ -86,13 +91,12 @@ pub async fn run(
             if let Some(dir) = skill_dir {
                 if dir.exists() {
                     if let Err(e) = fs::remove_dir_all(&dir) {
-                        eprintln!(
-                            "  {} Failed to remove {} for {}: {}",
-                            "✗".red(),
-                            skill_name,
-                            agent.display_name,
-                            e
-                        );
+                        cliclack::log::error(t!(
+                            "remove_failed",
+                            "skill" => skill_name,
+                            "agent" => agent.display_name,
+                            "error" => e
+                        ))?;
                     } else {
                         removed += 1;
                     }
@@ -118,12 +122,11 @@ pub async fn run(
     // Write updated lock
     let _ = skill_lock::write_skill_lock(&lock).await;
 
-    println!(
-        "\n  {} Removed {} skill(s) from {} location(s).",
-        "✓".green().bold(),
-        skill_names.len(),
-        removed,
-    );
+    cliclack::log::success(t!(
+        "removed_success",
+        "skills" => skill_names.len(),
+        "locations" => removed
+    ))?;
 
     // Telemetry
     if !crate::telemetry::is_telemetry_disabled() {

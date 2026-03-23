@@ -4,19 +4,13 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 pub async fn clone_repo(url: &str, ref_branch: Option<&str>) -> anyhow::Result<PathBuf> {
-    let url = url.to_string();
-    let ref_branch = ref_branch.map(|s| s.to_string());
+    let timeout = Duration::from_secs(GIT_CLONE_TIMEOUT_SECS);
 
-    let result = tokio::time::timeout(
-        Duration::from_secs(GIT_CLONE_TIMEOUT_SECS),
-        tokio::task::spawn_blocking(move || clone_repo_blocking(&url, ref_branch.as_deref())),
-    )
-    .await;
+    let result = tokio::time::timeout(timeout, clone_with_cli(url, ref_branch)).await;
 
     match result {
-        Ok(Ok(Ok(path))) => Ok(path),
-        Ok(Ok(Err(e))) => Err(e),
-        Ok(Err(e)) => anyhow::bail!("git clone task panicked: {e}"),
+        Ok(Ok(path)) => Ok(path),
+        Ok(Err(e)) => Err(e),
         Err(_) => anyhow::bail!(
             "git clone timed out after {}s. Check your network connection.",
             GIT_CLONE_TIMEOUT_SECS
@@ -24,7 +18,70 @@ pub async fn clone_repo(url: &str, ref_branch: Option<&str>) -> anyhow::Result<P
     }
 }
 
-fn clone_repo_blocking(url: &str, ref_branch: Option<&str>) -> anyhow::Result<PathBuf> {
+/// Clone using the system `git` CLI, falling back to libgit2 if `git` is not found.
+async fn clone_with_cli(url: &str, ref_branch: Option<&str>) -> anyhow::Result<PathBuf> {
+    let temp_dir = tempfile::Builder::new()
+        .prefix("x-skill-")
+        .tempdir()?;
+    let dest = temp_dir.path().to_path_buf();
+
+    let mut cmd = tokio::process::Command::new("git");
+    cmd.args(["clone", "--depth", "1"]);
+    if let Some(branch) = ref_branch {
+        cmd.args(["--branch", branch]);
+    }
+
+    let auth_url = inject_token_if_available(url);
+    cmd.arg(&auth_url);
+    cmd.arg(&dest);
+
+    cmd.stdout(std::process::Stdio::null());
+    cmd.stderr(std::process::Stdio::piped());
+
+    match cmd.output().await {
+        Ok(output) if output.status.success() => {
+            let _ = temp_dir.keep();
+            Ok(dest)
+        }
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("git clone failed: {}", stderr.trim());
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            drop(temp_dir);
+            clone_with_libgit2(url, ref_branch).await
+        }
+        Err(e) => anyhow::bail!("failed to run git: {e}"),
+    }
+}
+
+/// Inject a GitHub token into HTTPS GitHub/GitLab URLs for private repo access.
+fn inject_token_if_available(url: &str) -> String {
+    if let Some(rest) = url.strip_prefix("https://github.com/") {
+        if let Some(token) = crate::http::get_github_token() {
+            return format!("https://x-access-token:{token}@github.com/{rest}");
+        }
+    }
+    url.to_string()
+}
+
+/// Fallback: clone using libgit2 (only reached when `git` CLI is not installed).
+async fn clone_with_libgit2(url: &str, ref_branch: Option<&str>) -> anyhow::Result<PathBuf> {
+    let url = url.to_string();
+    let ref_branch = ref_branch.map(|s| s.to_string());
+
+    let result =
+        tokio::task::spawn_blocking(move || clone_repo_libgit2(&url, ref_branch.as_deref()))
+            .await;
+
+    match result {
+        Ok(Ok(path)) => Ok(path),
+        Ok(Err(e)) => Err(e),
+        Err(e) => anyhow::bail!("git clone task panicked: {e}"),
+    }
+}
+
+fn clone_repo_libgit2(url: &str, ref_branch: Option<&str>) -> anyhow::Result<PathBuf> {
     let temp_dir = tempfile::Builder::new()
         .prefix("x-skill-")
         .tempdir()?;
@@ -59,7 +116,6 @@ fn clone_repo_blocking(url: &str, ref_branch: Option<&str>) -> anyhow::Result<Pa
 
     match builder.clone(url, &dest) {
         Ok(_) => {
-            // Keep the temp dir alive by leaking it (caller is responsible for cleanup)
             let _ = temp_dir.keep();
             Ok(dest)
         }

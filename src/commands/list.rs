@@ -1,7 +1,8 @@
 use crate::agents::build_agent_configs;
 use crate::constants::SKILL_MD;
 use crate::output;
-use colored::Colorize;
+use crate::t;
+use console::style;
 use std::fs;
 
 pub async fn run(json: bool, global: bool) -> anyhow::Result<()> {
@@ -66,28 +67,21 @@ pub async fn run(json: bool, global: bool) -> anyhow::Result<()> {
     }
 
     if all_skills.is_empty() {
-        println!(
-            "  {} No skills installed{}.",
-            "!".yellow().bold(),
-            if global { " globally" } else { "" }
-        );
-        println!(
-            "  Run {} to install skills.",
-            "x-skill add <source>".bold()
-        );
+        let key = if global { "list_no_skills_global" } else { "list_no_skills" };
+        cliclack::log::warning(t!(key, "cmd" => style("x-skill add <source>").bold()))?;
         return Ok(());
     }
 
+    let key = if global { "list_count_global" } else { "list_count" };
     println!(
-        "  {} skill(s) installed{}:\n",
-        all_skills.len().to_string().bold(),
-        if global { " globally" } else { "" }
+        "  {}\n",
+        t!(key, "count" => style(all_skills.len()).bold())
     );
 
     for skill in &all_skills {
-        println!("  {} {}", "•".green(), skill.name.bold());
+        println!("  {} {}", style("•").green(), style(&skill.name).bold());
         if !skill.description.is_empty() {
-            println!("    {}", skill.description.dimmed());
+            println!("    {}", style(&skill.description).dim());
         }
     }
 

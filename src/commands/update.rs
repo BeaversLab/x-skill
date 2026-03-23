@@ -2,8 +2,9 @@ use crate::commands::add;
 use crate::http;
 use crate::output;
 use crate::skill_lock;
+use crate::t;
 use crate::types::AddOptions;
-use colored::Colorize;
+use console::style;
 
 pub async fn run() -> anyhow::Result<()> {
     output::show_logo();
@@ -12,14 +13,12 @@ pub async fn run() -> anyhow::Result<()> {
     let lock = skill_lock::read_skill_lock().await;
 
     if lock.skills.is_empty() {
-        println!("  {} No skills installed.", "!".yellow().bold());
+        cliclack::log::warning(t!("no_skills_installed"))?;
         return Ok(());
     }
 
-    println!(
-        "  Checking {} skill(s) for updates...\n",
-        lock.skills.len()
-    );
+    let spinner = cliclack::spinner();
+    spinner.start(t!("checking_updates", "count" => lock.skills.len()));
 
     let mut to_update = Vec::new();
 
@@ -41,23 +40,19 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     if to_update.is_empty() {
-        println!("  {} All skills are up to date.", "✓".green().bold());
+        spinner.stop(t!("all_up_to_date"));
         return Ok(());
     }
 
-    println!(
-        "  {} {} skill(s) to update:\n",
-        "↑".cyan().bold(),
-        to_update.len()
-    );
+    spinner.stop(t!("skills_to_update", "count" => to_update.len()));
 
     let mut success_count = 0;
     let mut fail_count = 0;
 
     for (name, source_url, _skill_path) in &to_update {
-        println!("  {} Updating {}...", "→".dimmed(), name.bold());
+        let update_spinner = cliclack::spinner();
+        update_spinner.start(t!("updating", "name" => style(name).bold()));
 
-        // Build the install URL from source_url
         let install_url = source_url.clone();
 
         let opts = AddOptions {
@@ -69,26 +64,25 @@ pub async fn run() -> anyhow::Result<()> {
         match add::run(&install_url, &opts).await {
             Ok(_) => {
                 success_count += 1;
-                println!("  {} {} updated", "✓".green(), name);
+                update_spinner.stop(t!("updated", "name" => name));
             }
             Err(e) => {
                 fail_count += 1;
-                eprintln!("  {} {} failed: {}", "✗".red(), name, e);
+                update_spinner.error(t!("update_failed", "name" => name, "error" => e));
             }
         }
     }
 
     println!();
-    println!(
-        "  {} {} updated, {} failed.",
-        if fail_count == 0 {
-            "✓".green().bold()
-        } else {
-            "!".yellow().bold()
-        },
-        success_count,
-        fail_count,
-    );
+    if fail_count == 0 {
+        cliclack::log::success(
+            t!("update_summary", "success" => success_count, "fail" => fail_count),
+        )?;
+    } else {
+        cliclack::log::warning(
+            t!("update_summary", "success" => success_count, "fail" => fail_count),
+        )?;
+    }
 
     // Telemetry
     let mut params = std::collections::HashMap::new();

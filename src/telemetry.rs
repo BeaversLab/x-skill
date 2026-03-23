@@ -3,6 +3,18 @@ use crate::types::AuditResponse;
 use std::collections::HashMap;
 use std::time::Duration;
 
+fn telemetry_url() -> String {
+    std::env::var("SKILLS_API_URL")
+        .map(|base| format!("{base}/api/telemetry"))
+        .unwrap_or_else(|_| TELEMETRY_URL.to_string())
+}
+
+fn audit_url() -> String {
+    std::env::var("SKILLS_API_URL")
+        .map(|base| format!("{base}/api/audit"))
+        .unwrap_or_else(|_| AUDIT_URL.to_string())
+}
+
 pub fn is_telemetry_disabled() -> bool {
     std::env::var("DISABLE_TELEMETRY").is_ok() || std::env::var("DO_NOT_TRACK").is_ok()
 }
@@ -26,7 +38,7 @@ pub fn track(event: &str, params: HashMap<String, String>) {
     }
     tokio::spawn(async move {
         let query = build_query(&params);
-        let url = format!("{TELEMETRY_URL}?{query}");
+        let url = format!("{}?{query}", telemetry_url());
         let _ = crate::http::client().get(&url).send().await;
     });
 }
@@ -41,7 +53,8 @@ pub async fn fetch_audit_data(
     }
 
     let url = format!(
-        "{AUDIT_URL}?source={}&skills={}",
+        "{}?source={}&skills={}",
+        audit_url(),
         urlencoded(source),
         skill_slugs
             .iter()

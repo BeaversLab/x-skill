@@ -1,5 +1,6 @@
 use crate::output;
-use colored::Colorize;
+use crate::t;
+use console::style;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -27,7 +28,8 @@ pub async fn run(query: Option<&str>) -> anyhow::Result<()> {
         format!("{api_base}/api/search")
     };
 
-    println!("  {} skills.sh...", "Searching".dimmed());
+    let spinner = cliclack::spinner();
+    spinner.start(t!("searching"));
 
     let resp = crate::http::client().get(&url).send().await;
 
@@ -39,22 +41,23 @@ pub async fn run(query: Option<&str>) -> anyhow::Result<()> {
                 .unwrap_or_default()
         }
         _ => {
-            println!("  {} Could not reach skills.sh", "!".yellow().bold());
+            spinner.error(t!("search_unreachable"));
             return Ok(());
         }
     };
 
     if results.is_empty() {
-        println!("  {} No skills found.", "!".yellow().bold());
+        spinner.stop(t!("no_results"));
         return Ok(());
     }
 
-    println!("  {} {} skill(s) found:\n", "✓".green(), results.len());
+    spinner.stop(t!("results_found", "count" => results.len()));
+    println!();
 
     for r in &results {
-        println!("  {} {}", "•".green(), r.name.bold());
-        println!("    {}", r.description.dimmed());
-        println!("    {}", format!("x-skill add {}", r.source).cyan());
+        println!("  {} {}", style("•").green(), style(&r.name).bold());
+        println!("    {}", style(&r.description).dim());
+        println!("    {}", style(format!("x-skill add {}", r.source)).cyan());
         println!();
     }
 
