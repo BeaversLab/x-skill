@@ -26,6 +26,15 @@
 
 ## 安装
 
+### Homebrew Tap
+
+```bash
+brew tap beaverslab/tap
+brew install x-skill
+```
+
+当前 Homebrew formula 会从 `BeaversLab/x-skill` 仓库源码构建，并自动安装所需的 Rust 构建依赖。
+
 ### 从源码构建
 
 ```bash
