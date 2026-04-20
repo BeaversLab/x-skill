@@ -33,7 +33,7 @@ brew tap beaverslab/tap
 brew install x-skill
 ```
 
-当前 Homebrew tap 固定到公开 release 的源码归档版本，并自动安装所需的 Rust 构建依赖后在本地编译。
+当前 Homebrew tap 固定到公开 release 版本，可直接安装预编译二进制；如无匹配平台则回退到源码构建。
 
 ### 从源码构建
 
