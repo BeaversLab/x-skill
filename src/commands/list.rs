@@ -67,16 +67,21 @@ pub async fn run(json: bool, global: bool) -> anyhow::Result<()> {
     }
 
     if all_skills.is_empty() {
-        let key = if global { "list_no_skills_global" } else { "list_no_skills" };
+        let key = if global {
+            "list_no_skills_global"
+        } else {
+            "list_no_skills"
+        };
         cliclack::log::warning(t!(key, "cmd" => style("x-skill add <source>").bold()))?;
         return Ok(());
     }
 
-    let key = if global { "list_count_global" } else { "list_count" };
-    println!(
-        "  {}\n",
-        t!(key, "count" => style(all_skills.len()).bold())
-    );
+    let key = if global {
+        "list_count_global"
+    } else {
+        "list_count"
+    };
+    println!("  {}\n", t!(key, "count" => style(all_skills.len()).bold()));
 
     for skill in &all_skills {
         println!("  {} {}", style("•").green(), style(&skill.name).bold());

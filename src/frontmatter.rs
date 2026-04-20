@@ -51,8 +51,7 @@ mod tests {
 
     #[test]
     fn test_with_metadata() {
-        let input =
-            "---\nname: test\ndescription: d\nmetadata:\n  internal: true\n---\ncontent";
+        let input = "---\nname: test\ndescription: d\nmetadata:\n  internal: true\n---\ncontent";
         let (fm, _) = extract_frontmatter(input).unwrap();
         let meta = fm.metadata.unwrap();
         assert_eq!(meta.get("internal").and_then(|v| v.as_bool()), Some(true));

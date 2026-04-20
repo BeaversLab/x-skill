@@ -44,10 +44,7 @@ pub fn track(event: &str, params: HashMap<String, String>) {
 }
 
 /// Fetch audit data with a timeout. Returns None on any error.
-pub async fn fetch_audit_data(
-    source: &str,
-    skill_slugs: &[String],
-) -> Option<AuditResponse> {
+pub async fn fetch_audit_data(source: &str, skill_slugs: &[String]) -> Option<AuditResponse> {
     if is_telemetry_disabled() || skill_slugs.is_empty() {
         return None;
     }

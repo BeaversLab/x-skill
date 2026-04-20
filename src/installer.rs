@@ -228,10 +228,7 @@ fn copy_directory(src: &Path, dest: &Path) -> io::Result<()> {
                     fs::write(&dest_path, content)?;
                 }
                 Err(e) if e.kind() == io::ErrorKind::NotFound => {
-                    eprintln!(
-                        "Skipping broken symlink: {}",
-                        src_path.display()
-                    );
+                    eprintln!("Skipping broken symlink: {}", src_path.display());
                 }
                 Err(e) => return Err(e),
             }

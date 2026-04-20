@@ -126,16 +126,13 @@ impl WellKnownProvider {
             entry.name, skill_md_file
         );
 
-        let content = reqwest::get(&skill_md_url)
-            .await
-            .ok()?
-            .text()
-            .await
-            .ok()?;
+        let content = reqwest::get(&skill_md_url).await.ok()?.text().await.ok()?;
 
         let fm = crate::frontmatter::extract_frontmatter(&content)?;
         let name = fm.0.name.unwrap_or_else(|| entry.name.clone());
-        let description = fm.0.description.unwrap_or_else(|| entry.description.clone());
+        let description =
+            fm.0.description
+                .unwrap_or_else(|| entry.description.clone());
 
         // Fetch remaining files in parallel
         let other_files: Vec<_> = entry
@@ -145,10 +142,7 @@ impl WellKnownProvider {
             .collect();
 
         let fetches = other_files.iter().map(|f| {
-            let file_url = format!(
-                "{base_url}/.well-known/skills/{}/{}",
-                entry.name, f
-            );
+            let file_url = format!("{base_url}/.well-known/skills/{}/{}", entry.name, f);
             async move {
                 reqwest::get(&file_url)
                     .await

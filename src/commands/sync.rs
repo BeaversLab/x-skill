@@ -61,7 +61,11 @@ pub async fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn scan_for_skills(dir: &Path, results: &mut Vec<std::path::PathBuf>, depth: usize) -> anyhow::Result<()> {
+fn scan_for_skills(
+    dir: &Path,
+    results: &mut Vec<std::path::PathBuf>,
+    depth: usize,
+) -> anyhow::Result<()> {
     if depth > 2 {
         return Ok(());
     }

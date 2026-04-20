@@ -121,10 +121,7 @@ pub fn build_agent_configs() -> Vec<AgentConfig> {
             display_name: "Codex",
             skills_dir: ".agents/skills",
             global_skills_dir: Some(codex.join("skills")),
-            detect: DetectStrategy::AnyDirExists(vec![
-                codex.clone(),
-                PathBuf::from("/etc/codex"),
-            ]),
+            detect: DetectStrategy::AnyDirExists(vec![codex.clone(), PathBuf::from("/etc/codex")]),
             show_in_universal_list: true,
         },
         AgentConfig {
@@ -142,10 +139,7 @@ pub fn build_agent_configs() -> Vec<AgentConfig> {
             display_name: "Continue",
             skills_dir: ".continue/skills",
             global_skills_dir: Some(h.join(".continue/skills")),
-            detect: DetectStrategy::AnyDirExists(vec![
-                cwd.join(".continue"),
-                h.join(".continue"),
-            ]),
+            detect: DetectStrategy::AnyDirExists(vec![cwd.join(".continue"), h.join(".continue")]),
             show_in_universal_list: true,
         },
         AgentConfig {

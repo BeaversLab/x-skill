@@ -5,34 +5,28 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-static SOURCE_ALIASES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
-    HashMap::from([("coinbase/agentWallet", "coinbase/agentic-wallet-skills")])
-});
+static SOURCE_ALIASES: LazyLock<HashMap<&'static str, &'static str>> =
+    LazyLock::new(|| HashMap::from([("coinbase/agentWallet", "coinbase/agentic-wallet-skills")]));
 
-static RE_GITHUB_PREFIX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^github:(.+)$").unwrap());
-static RE_GITLAB_PREFIX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^gitlab:(.+)$").unwrap());
+static RE_GITHUB_PREFIX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^github:(.+)$").unwrap());
+static RE_GITLAB_PREFIX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^gitlab:(.+)$").unwrap());
 static RE_GITHUB_TREE_PATH: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"github\.com/([^/]+)/([^/]+)/tree/([^/]+)/(.+)").unwrap());
 static RE_GITHUB_TREE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"github\.com/([^/]+)/([^/]+)/tree/([^/]+)$").unwrap());
 static RE_GITHUB_REPO: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"github\.com/([^/]+)/([^/]+)").unwrap());
-static RE_GITLAB_TREE_PATH: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)\/(.+)").unwrap()
-});
-static RE_GITLAB_TREE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)$").unwrap()
-});
+static RE_GITLAB_TREE_PATH: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)\/(.+)").unwrap());
+static RE_GITLAB_TREE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(https?):\/\/([^/]+)\/(.+?)\/-\/tree\/([^/]+)$").unwrap());
 static RE_GITLAB_REPO: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"gitlab\.com/(.+?)(?:\.git)?/?$").unwrap());
 static RE_AT_SKILL: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^([^/]+)/([^/@]+)@(.+)$").unwrap());
 static RE_SHORTHAND: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^([^/]+)/([^/]+)(?:/(.+))?$").unwrap());
-static RE_WINDOWS_ABS: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").unwrap());
+static RE_WINDOWS_ABS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").unwrap());
 
 pub fn parse_source(input: &str) -> ParsedSource {
     // Step 0: Alias resolution
@@ -268,10 +262,7 @@ pub fn get_owner_repo(parsed: &ParsedSource) -> Option<String> {
         .url
         .strip_prefix("https://")
         .or_else(|| parsed.url.strip_prefix("http://"))?;
-    let path = without_scheme
-        .split_once('/')?
-        .1
-        .trim_end_matches(".git");
+    let path = without_scheme.split_once('/')?.1.trim_end_matches(".git");
     if path.contains('/') {
         Some(path.to_string())
     } else {

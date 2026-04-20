@@ -58,10 +58,7 @@ pub async fn run(
 
     // Confirmation
     if !yes && std::io::stdin().is_terminal() {
-        println!(
-            "\n  {}",
-            t!("will_remove", "count" => skill_names.len())
-        );
+        println!("\n  {}", t!("will_remove", "count" => skill_names.len()));
         for name in &skill_names {
             println!("  {} {}", style("•").red(), name);
         }
@@ -80,10 +77,7 @@ pub async fn run(
     for skill_name in &skill_names {
         for agent in &target_agents {
             let skill_dir = if global {
-                agent
-                    .global_skills_dir
-                    .as_ref()
-                    .map(|d| d.join(skill_name))
+                agent.global_skills_dir.as_ref().map(|d| d.join(skill_name))
             } else {
                 Some(std::path::PathBuf::from(agent.skills_dir).join(skill_name))
             };

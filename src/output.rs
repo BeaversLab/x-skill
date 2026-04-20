@@ -6,7 +6,10 @@ pub fn show_banner() {
     println!();
     println!("  {}", style(t!("banner_tagline")).dim());
     println!();
-    println!("  {} x-skill <command> [options]", style(t!("banner_usage")).bold());
+    println!(
+        "  {} x-skill <command> [options]",
+        style(t!("banner_usage")).bold()
+    );
     println!();
     println!(
         "  {}  {}  x-skill add <source>",

@@ -12,9 +12,7 @@ pub async fn run() -> anyhow::Result<()> {
     let lock = local_lock::read_local_lock(&cwd).await;
 
     if lock.skills.is_empty() {
-        cliclack::log::warning(
-            t!("no_lock_file", "cmd" => style("x-skill add <source>").bold()),
-        )?;
+        cliclack::log::warning(t!("no_lock_file", "cmd" => style("x-skill add <source>").bold()))?;
         return Ok(());
     }
 

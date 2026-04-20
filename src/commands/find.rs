@@ -34,12 +34,11 @@ pub async fn run(query: Option<&str>) -> anyhow::Result<()> {
     let resp = crate::http::client().get(&url).send().await;
 
     let results = match resp {
-        Ok(r) if r.status().is_success() => {
-            r.json::<SearchResponse>()
-                .await
-                .map(|s| s.results)
-                .unwrap_or_default()
-        }
+        Ok(r) if r.status().is_success() => r
+            .json::<SearchResponse>()
+            .await
+            .map(|s| s.results)
+            .unwrap_or_default(),
         _ => {
             spinner.error(t!("search_unreachable"));
             return Ok(());

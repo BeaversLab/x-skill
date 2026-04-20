@@ -36,13 +36,9 @@ pub async fn run() -> anyhow::Result<()> {
             Ok(Some(latest_hash)) => {
                 if latest_hash != entry.skill_folder_hash {
                     updates_available += 1;
-                    cliclack::log::info(
-                        t!("has_updates", "name" => style(name).bold()),
-                    )?;
+                    cliclack::log::info(t!("has_updates", "name" => style(name).bold()))?;
                 } else {
-                    cliclack::log::success(
-                        t!("up_to_date", "name" => style(name).dim()),
-                    )?;
+                    cliclack::log::success(t!("up_to_date", "name" => style(name).dim()))?;
                 }
             }
             Ok(None) => {

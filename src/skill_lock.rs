@@ -24,9 +24,7 @@ pub async fn read_skill_lock() -> SkillLockFile {
                 if !content.trim().is_empty() {
                     eprintln!(
                         "  {}",
-                        XSkillError::LockFileCorrupted {
-                            path: path.clone()
-                        }
+                        XSkillError::LockFileCorrupted { path: path.clone() }
                     );
                 }
                 create_empty_lock()

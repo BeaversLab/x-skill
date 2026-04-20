@@ -33,7 +33,11 @@ pub async fn run() -> anyhow::Result<()> {
         let source = &entry.source;
         match http::fetch_skill_folder_hash(source, entry.skill_path.as_deref()).await {
             Ok(Some(latest_hash)) if latest_hash != entry.skill_folder_hash => {
-                to_update.push((name.clone(), entry.source_url.clone(), entry.skill_path.clone()));
+                to_update.push((
+                    name.clone(),
+                    entry.source_url.clone(),
+                    entry.skill_path.clone(),
+                ));
             }
             _ => {}
         }

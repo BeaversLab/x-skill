@@ -20,9 +20,7 @@ pub async fn clone_repo(url: &str, ref_branch: Option<&str>) -> anyhow::Result<P
 
 /// Clone using the system `git` CLI, falling back to libgit2 if `git` is not found.
 async fn clone_with_cli(url: &str, ref_branch: Option<&str>) -> anyhow::Result<PathBuf> {
-    let temp_dir = tempfile::Builder::new()
-        .prefix("x-skill-")
-        .tempdir()?;
+    let temp_dir = tempfile::Builder::new().prefix("x-skill-").tempdir()?;
     let dest = temp_dir.path().to_path_buf();
 
     let mut cmd = tokio::process::Command::new("git");
@@ -71,8 +69,7 @@ async fn clone_with_libgit2(url: &str, ref_branch: Option<&str>) -> anyhow::Resu
     let ref_branch = ref_branch.map(|s| s.to_string());
 
     let result =
-        tokio::task::spawn_blocking(move || clone_repo_libgit2(&url, ref_branch.as_deref()))
-            .await;
+        tokio::task::spawn_blocking(move || clone_repo_libgit2(&url, ref_branch.as_deref())).await;
 
     match result {
         Ok(Ok(path)) => Ok(path),
@@ -82,9 +79,7 @@ async fn clone_with_libgit2(url: &str, ref_branch: Option<&str>) -> anyhow::Resu
 }
 
 fn clone_repo_libgit2(url: &str, ref_branch: Option<&str>) -> anyhow::Result<PathBuf> {
-    let temp_dir = tempfile::Builder::new()
-        .prefix("x-skill-")
-        .tempdir()?;
+    let temp_dir = tempfile::Builder::new().prefix("x-skill-").tempdir()?;
     let dest = temp_dir.path().to_path_buf();
 
     let mut fo = git2::FetchOptions::new();

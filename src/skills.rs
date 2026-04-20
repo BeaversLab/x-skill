@@ -101,7 +101,13 @@ pub fn discover_skills(
 
     // 5. Recursive search if no skills found or full_depth requested
     if skills.is_empty() || options.full_depth {
-        find_skill_dirs(&search_path, 0, &mut skills, &mut seen_paths, should_install_internal);
+        find_skill_dirs(
+            &search_path,
+            0,
+            &mut skills,
+            &mut seen_paths,
+            should_install_internal,
+        );
     }
 
     Ok(skills)
@@ -122,8 +128,7 @@ fn scan_dir_for_skills(
         if path.is_dir() {
             let skill_file = path.join(SKILL_MD);
             if skill_file.exists() {
-                let canonical =
-                    fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+                let canonical = fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
                 if seen.insert(canonical) {
                     if let Some(skill) = parse_skill_file(&skill_file, include_internal) {
                         skills.push(skill);
@@ -202,13 +207,10 @@ fn parse_skill_file(skill_md_path: &Path, include_internal: bool) -> Option<Skil
 }
 
 pub fn is_subpath_safe(base_path: &Path, subpath: &str) -> bool {
-    let base = normalize_path(
-        &std::path::absolute(base_path).unwrap_or_else(|_| base_path.to_path_buf()),
-    );
+    let base =
+        normalize_path(&std::path::absolute(base_path).unwrap_or_else(|_| base_path.to_path_buf()));
     let target_raw = base_path.join(subpath);
-    let target = normalize_path(
-        &std::path::absolute(&target_raw).unwrap_or(target_raw),
-    );
+    let target = normalize_path(&std::path::absolute(&target_raw).unwrap_or(target_raw));
     target.starts_with(&base)
 }
 

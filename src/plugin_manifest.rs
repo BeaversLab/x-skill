@@ -20,7 +20,10 @@ struct MarketplaceMetadata {
 #[allow(dead_code)]
 enum PluginSource {
     Simple(String),
-    Complex { source: String, repo: Option<String> },
+    Complex {
+        source: String,
+        repo: Option<String>,
+    },
 }
 
 #[derive(Debug, Deserialize)]
@@ -77,7 +80,12 @@ pub fn get_plugin_skill_paths(base_path: &Path) -> Vec<PathBuf> {
     // plugin.json
     let plugin_path = base_path.join(".claude-plugin/plugin.json");
     if let Some(manifest) = read_json::<PluginManifest>(&plugin_path) {
-        add_plugin_skill_paths(base_path, manifest.skills.as_deref(), &mut search_dirs, base_path);
+        add_plugin_skill_paths(
+            base_path,
+            manifest.skills.as_deref(),
+            &mut search_dirs,
+            base_path,
+        );
     }
 
     search_dirs

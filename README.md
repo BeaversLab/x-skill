@@ -33,7 +33,7 @@ brew tap beaverslab/tap
 brew install x-skill
 ```
 
-当前 Homebrew formula 会从 `BeaversLab/x-skill` 仓库源码构建，并自动安装所需的 Rust 构建依赖。
+当前 Homebrew tap 固定到公开 release 的源码归档版本，并自动安装所需的 Rust 构建依赖后在本地编译。
 
 ### 从源码构建
 

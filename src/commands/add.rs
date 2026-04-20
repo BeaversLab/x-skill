@@ -103,9 +103,9 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
     let audit_handle = if owner_repo.is_some() && parsed.source_type != SourceType::Local {
         let or = owner_repo.clone().unwrap();
         let slugs = skill_slugs.clone();
-        Some(tokio::spawn(
-            async move { telemetry::fetch_audit_data(&or, &slugs).await },
-        ))
+        Some(tokio::spawn(async move {
+            telemetry::fetch_audit_data(&or, &slugs).await
+        }))
     } else {
         None
     };
@@ -193,14 +193,9 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
 
     for skill in &selected_skills {
         for agent in &selected_agents {
-            let result = installer::install_skill_for_agent(
-                &skill.path,
-                &skill.name,
-                agent,
-                global,
-                mode,
-            )
-            .await;
+            let result =
+                installer::install_skill_for_agent(&skill.path, &skill.name, agent, global, mode)
+                    .await;
 
             if result.success {
                 success_count += 1;
@@ -227,9 +222,7 @@ pub async fn run(source: &str, opts: &AddOptions) -> anyhow::Result<()> {
             }
 
             if result.symlink_failed {
-                cliclack::log::warning(
-                    t!("symlink_fallback", "agent" => agent.display_name),
-                )?;
+                cliclack::log::warning(t!("symlink_fallback", "agent" => agent.display_name))?;
             }
         }
     }
@@ -328,9 +321,7 @@ async fn handle_provider_skills(
 
     if remote_skills.is_empty() {
         spinner.stop(t!("done"));
-        cliclack::log::warning(
-            t!("provider_no_skills", "name" => provider.display_name()),
-        )?;
+        cliclack::log::warning(t!("provider_no_skills", "name" => provider.display_name()))?;
         return Ok(());
     }
 
@@ -440,7 +431,10 @@ fn select_agents<'a>(
     opts: &AddOptions,
 ) -> anyhow::Result<Vec<&'a AgentConfig>> {
     if opts.all || (opts.agents.len() == 1 && opts.agents[0] == "*") {
-        return Ok(configs.iter().filter(|c| c.show_in_universal_list).collect());
+        return Ok(configs
+            .iter()
+            .filter(|c| c.show_in_universal_list)
+            .collect());
     }
 
     if !opts.agents.is_empty() {
@@ -489,8 +483,10 @@ fn select_agents<'a>(
         .collect();
 
     let locked_values: Vec<String> = universal.iter().map(|c| c.name.to_string()).collect();
-    let locked_labels: Vec<String> =
-        universal.iter().map(|c| c.display_name.to_string()).collect();
+    let locked_labels: Vec<String> = universal
+        .iter()
+        .map(|c| c.display_name.to_string())
+        .collect();
 
     let multi_opts = MultiSelectOptions {
         prompt: t!("select_agents"),
