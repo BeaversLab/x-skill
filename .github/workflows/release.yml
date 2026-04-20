@@ -1,0 +1,235 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy -- -D warnings
+      - run: cargo test
+
+  release:
+    name: Release (${{ matrix.runner }})
+    needs: quality
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: x-skill
+            asset_name: x-skill-linux-x86_64.tar.gz
+            binary_name: x-skill
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            artifact: x-skill
+            asset_name: x-skill-macos-x86_64.tar.gz
+            binary_name: x-skill
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            artifact: x-skill
+            asset_name: x-skill-macos-aarch64.tar.gz
+            binary_name: x-skill
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: x-skill.exe
+            asset_name: x-skill-windows-x86_64.zip
+            binary_name: x-skill.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package Unix artifact
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact }} dist/${{ matrix.binary_name }}
+          tar -C dist -czf ${{ matrix.asset_name }} ${{ matrix.binary_name }}
+
+      - name: Package Windows artifact
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/${{ matrix.artifact }}" "dist/${{ matrix.binary_name }}"
+          Compress-Archive -Path "dist/${{ matrix.binary_name }}" -DestinationPath "${{ matrix.asset_name }}" -Force
+
+      - name: Generate checksum
+        if: runner.os != 'Windows'
+        run: shasum -a 256 ${{ matrix.asset_name }} > ${{ matrix.asset_name }}.sha256
+
+      - name: Generate checksum (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "${{ matrix.asset_name }}" -Algorithm SHA256).Hash.ToLower()
+          "$hash  ${{ matrix.asset_name }}" | Out-File -FilePath "${{ matrix.asset_name }}.sha256" -Encoding ascii
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: x-skill ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            ${{ matrix.asset_name }}
+            ${{ matrix.asset_name }}.sha256
+
+  update-homebrew-tap:
+    name: Update Homebrew Tap
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Homebrew Tap
+        uses: actions/checkout@v4
+        with:
+          repository: BeaversLab/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Collect release asset metadata
+        id: release
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            const release = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: context.ref.replace('refs/tags/', ''),
+            });
+
+            const assets = Object.fromEntries(
+              release.data.assets.map((asset) => [
+                asset.name,
+                {
+                  url: asset.browser_download_url,
+                  sha256: (asset.digest || "").replace(/^sha256:/, ""),
+                },
+              ]),
+            );
+
+            const required = [
+              "x-skill-linux-x86_64.tar.gz",
+              "x-skill-macos-x86_64.tar.gz",
+              "x-skill-macos-aarch64.tar.gz",
+            ];
+
+            for (const name of required) {
+              if (!assets[name]?.url || !assets[name]?.sha256) {
+                throw new Error(`missing release asset metadata for ${name}`);
+              }
+            }
+
+            return JSON.stringify({
+              version: context.ref.replace("refs/tags/v", ""),
+              linux: assets["x-skill-linux-x86_64.tar.gz"],
+              macos_x86_64: assets["x-skill-macos-x86_64.tar.gz"],
+              macos_aarch64: assets["x-skill-macos-aarch64.tar.gz"],
+            });
+
+      - name: Update formula and tap README
+        env:
+          RELEASE_INFO: ${{ steps.release.outputs.result }}
+        run: |
+          cd homebrew-tap
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          info = json.loads(os.environ["RELEASE_INFO"])
+          version = info["version"]
+
+          formula = f'''class XSkill < Formula
+            desc "Open agent skills ecosystem CLI for installing and managing AI agent skills"
+            homepage "https://github.com/BeaversLab/x-skill"
+            license "MIT"
+
+            on_linux do
+              url "{info["linux"]["url"]}"
+              sha256 "{info["linux"]["sha256"]}"
+              version "{version}"
+            end
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "{info["macos_aarch64"]["url"]}"
+                sha256 "{info["macos_aarch64"]["sha256"]}"
+                version "{version}"
+              else
+                url "{info["macos_x86_64"]["url"]}"
+                sha256 "{info["macos_x86_64"]["sha256"]}"
+                version "{version}"
+              end
+            end
+
+            def install
+              bin.install "x-skill"
+            end
+
+            test do
+              system "#{{bin}}/x-skill", "--version"
+            end
+          end
+          '''
+
+          readme = f'''# BeaversLab Homebrew Tap
+
+          Homebrew tap for BeaversLab CLI tools.
+
+          ## Usage
+
+          ```bash
+          brew tap beaverslab/tap
+          brew install chatlog
+          brew install x-skill
+          ```
+
+          `x-skill` 当前固定到公开的 `v{version}` 预编译二进制分发。
+
+          ## Available Formulas
+
+          | Formula | Description |
+          |---------|-------------|
+          | chatlog | Extract and save agent chat logs (Claude, Codex, Gemini CLI) as local Markdown files |
+          | x-skill | Install, manage, and discover skill packages for 42+ AI coding agents |
+          '''
+
+          Path("Formula").mkdir(exist_ok=True)
+          Path("Formula/x-skill.rb").write_text(formula, encoding="utf-8")
+          Path("README.md").write_text(readme, encoding="utf-8")
+          PY
+
+      - name: Commit and push tap changes
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/x-skill.rb README.md
+          git diff --cached --quiet && exit 0
+          git commit -m "update: x-skill ${{ github.ref_name }}"
+          git push
